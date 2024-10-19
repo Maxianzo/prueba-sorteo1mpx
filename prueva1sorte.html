@@ -14,22 +14,20 @@
             overflow: hidden;
         }
         #pixel-container {
-            width: 100px;
-            height: 100px;
+            width: 100vw; /* 100% del ancho de la ventana */
+            height: 100vh; /* 100% de la altura de la ventana */
             display: grid;
-            grid-template-columns: repeat(100, 1px);
-            grid-template-rows: repeat(100, 1px);
+            grid-template-columns: repeat(100, 1fr);
+            grid-template-rows: repeat(100, 1fr);
             border: 1px solid #ccc;
             cursor: pointer;
             position: relative;
-            transform-origin: top left; /* Zoom desde la esquina superior izquierda */
             transition: transform 0.3s;
+            overflow: hidden; /* Evita que se salga del contenedor */
         }
         .pixel {
-            width: 1px;
-            height: 1px;
             background-color: black;
-            margin: 0; /* Sin margen para un zoom más preciso */
+            display: none; /* Oculta los píxeles inicialmente */
         }
     </style>
 </head>
@@ -41,32 +39,90 @@
     const container = document.getElementById('pixel-container');
     const totalPixels = 100 * 100; // 10,000 pixels
     let zoomLevel = 0; // Nivel de zoom actual
+    const maxZoomLevel = 4; // Máximo nivel de zoom
+    let isDragging = false; // Para controlar el arrastre
+    let startX, startY, initialScrollLeft, initialScrollTop; // Variables para arrastrar
 
     // Crea los píxeles
     for (let i = 0; i < totalPixels; i++) {
         const pixel = document.createElement('div');
         pixel.className = 'pixel';
         pixel.dataset.number = i; // Asigna el número a cada píxel
-        pixel.onclick = (event) => {
-            event.stopPropagation(); // Evita que el clic se propague al contenedor
-            alert(`Número: ${pixel.dataset.number}`);
-        };
         container.appendChild(pixel);
     }
 
-    // Función para hacer zoom en el contenedor
-    container.onclick = () => {
-        if (zoomLevel < 15) {
+    // Muestra los píxeles después del primer clic
+    container.onclick = (event) => {
+        if (zoomLevel < maxZoomLevel) {
             zoomLevel++;
-            const scale = 1 + (zoomLevel * 0.5); // Incrementa el zoom
+            const scale = 1 + (zoomLevel * 0.25); // Incrementa el zoom de forma controlada
+            
+            // Calcula la posición del clic en relación al contenedor
+            const rect = container.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const offsetY = event.clientY - rect.top;
+
+            // Ajusta el transform-origin al punto donde se hizo clic
+            container.style.transformOrigin = `${offsetX}px ${offsetY}px`;
             container.style.transform = `scale(${scale})`;
+
             // Cambiar el tamaño de los píxeles
             Array.from(container.children).forEach((pixel) => {
                 pixel.style.width = `${1 / scale}px`;
                 pixel.style.height = `${1 / scale}px`;
             });
+        } else {
+            // Si se alcanza el máximo zoom, mostrar los píxeles
+            Array.from(container.children).forEach((pixel) => {
+                pixel.style.display = 'block';
+            });
         }
     };
+
+    // Manejo de arrastre
+    container.addEventListener('mousedown', (e) => {
+        if (zoomLevel >= maxZoomLevel) {
+            isDragging = true;
+            startX = e.pageX - container.offsetLeft;
+            startY = e.pageY - container.offsetTop;
+            initialScrollLeft = container.scrollLeft;
+            initialScrollTop = container.scrollTop;
+        }
+    });
+
+    container.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    container.addEventListener('mouseleave', () => {
+        isDragging = false;
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const x = e.pageX - container.offsetLeft;
+            const y = e.pageY - container.offsetTop;
+
+            const walkX = (x - startX) * 1; // Factor de arrastre
+            const walkY = (y - startY) * 1; // Factor de arrastre
+
+            container.style.transform = `scale(${1 + (zoomLevel * 0.25)}) translate(${initialScrollLeft + walkX}px, ${initialScrollTop + walkY}px)`;
+        }
+    });
+
+    // Mostrar todos los píxeles al cargar la página
+    window.onload = () => {
+        Array.from(container.children).forEach((pixel) => {
+            pixel.style.display = 'block';
+        });
+    };
+
+    // Al hacer clic en un píxel
+    container.addEventListener('click', (event) => {
+        if (event.target.classList.contains('pixel')) {
+            alert(`Número: ${event.target.dataset.number}`);
+        }
+    });
 </script>
 
 </body>
