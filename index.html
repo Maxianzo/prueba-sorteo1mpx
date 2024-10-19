@@ -21,7 +21,7 @@
             border: 1px solid #ccc;
             cursor: pointer;
             position: relative;
-            transition: transform 0.8s; /* Transición más lenta */
+            transition: transform 0.5s; /* Transición más lenta */
             overflow: hidden; /* Evita que se salga del contenedor */
         }
         .pixel {
@@ -54,8 +54,7 @@
     const startButton = document.getElementById('start-button');
     let zoomLevel = 0; // Nivel de zoom actual
     const maxZoomLevel = 4; // Máximo nivel de zoom
-    let isDragging = false; // Para controlar el arrastre
-    let startX, startY, initialScrollLeft, initialScrollTop; // Variables para arrastrar
+    let scale = 1; // Escala inicial
 
     // Función para encriptar un número a base64
     function encryptNumber(num) {
@@ -74,7 +73,7 @@
         container.style.display = 'grid';
 
         // Crea un array con números desordenados
-        const numbers = Array.from({ length: totalPixels }, (_, i) => i);
+        const numbers = Array.from({ length: totalPixels }, (_, i) => i + 1);
         for (let i = numbers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [numbers[i], numbers[j]] = [numbers[j], numbers[i]]; // Intercambiar elementos
@@ -93,67 +92,45 @@
         zoomLevel = 0; // Reinicia el nivel de zoom
     };
 
-    // Muestra los píxeles después del primer clic
-    container.onclick = (event) => {
+    // Manejo de clics para zoom
+    container.addEventListener('click', (event) => {
         if (zoomLevel < maxZoomLevel) {
             zoomLevel++;
-            const scale = 1 + (zoomLevel * 0.25); // Incrementa el zoom de forma controlada
-            
-            // Calcula la posición del clic en relación al contenedor
+            scale = 1 + (zoomLevel * 0.25); // Incrementa el zoom de forma controlada
+
+            // Ajusta el transform-origin al punto donde se hizo clic
             const rect = container.getBoundingClientRect();
             const offsetX = event.clientX - rect.left;
             const offsetY = event.clientY - rect.top;
 
-            // Ajusta el transform-origin al punto donde se hizo clic
             container.style.transformOrigin = `${offsetX}px ${offsetY}px`;
             container.style.transform = `scale(${scale})`;
 
             // Cambiar el tamaño de los píxeles
             Array.from(container.children).forEach((pixel) => {
-                pixel.style.width = `${(1 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
-                pixel.style.height = `${(1 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
-            });
-        } 
-        
-        // Al alcanzar el máximo zoom, establecer tamaño de píxeles a 15px
-        if (zoomLevel === maxZoomLevel) {
-            Array.from(container.children).forEach((pixel) => {
-                pixel.style.width = '15px';
-                pixel.style.height = '15px';
+                pixel.style.width = `${(100 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
+                pixel.style.height = `${(100 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
             });
         }
-    };
+    });
 
-    // Manejo de arrastre
-    container.addEventListener('mousedown', (e) => {
-        if (zoomLevel >= maxZoomLevel) {
-            isDragging = true;
-            startX = e.pageX - container.offsetLeft;
-            startY = e.pageY - container.offsetTop;
-            initialScrollLeft = container.scrollLeft;
-            initialScrollTop = container.scrollTop;
+    // Manejo de gestos de pellizco para zoom
+    container.addEventListener('touchstart', (event) => {
+        if (event.touches.length === 2) {
+            event.preventDefault(); // Evita el comportamiento por defecto
+            zoomLevel++;
+            scale *= 1.5; // Aumenta la escala
+            container.style.transform = `scale(${scale})`;
+            updatePixelSize();
         }
     });
 
-    container.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-
-    container.addEventListener('mouseleave', () => {
-        isDragging = false;
-    });
-
-    container.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            const x = e.pageX - container.offsetLeft;
-            const y = e.pageY - container.offsetTop;
-
-            const walkX = (x - startX) * 1; // Factor de arrastre
-            const walkY = (y - startY) * 1; // Factor de arrastre
-
-            container.style.transform = `scale(${1 + (zoomLevel * 0.25)}) translate(${initialScrollLeft + walkX}px, ${initialScrollTop + walkY}px)`;
-        }
-    });
+    function updatePixelSize() {
+        Array.from(container.children).forEach((pixel) => {
+            pixel.style.width = `${(100 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
+            pixel.style.height = `${(100 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
+        });
+    }
 
     // Al hacer clic en un píxel
     container.addEventListener('click', (event) => {
