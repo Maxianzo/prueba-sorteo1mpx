@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Millón de Píxeles</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #pixel-container {
+            width: 100vw; /* 100% del ancho de la ventana */
+            height: 100vh; /* 100% de la altura de la ventana */
+            display: grid;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.8s; /* Transición más lenta */
+            overflow: hidden; /* Evita que se salga del contenedor */
+        }
+        .pixel {
+            background-color: black;
+            display: block; /* Muestra los píxeles desde el principio */
+            margin: 2px; /* Margen de 2px */
+            padding: 2px; /* Relleno de 2px */
+            box-sizing: border-box; /* Incluye el margen y padding en el tamaño total */
+        }
+        #input-container {
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+<div id="input-container">
+    <label for="pixel-count">Número de píxeles (por ejemplo, 10000): </label>
+    <input type="number" id="pixel-count" value="10000" min="1" step="1">
+    <button id="start-button">Iniciar</button>
+</div>
+
+<div id="pixel-container" style="display: none;"></div>
+
+<script>
+    const container = document.getElementById('pixel-container');
+    const totalPixelsInput = document.getElementById('pixel-count');
+    const startButton = document.getElementById('start-button');
+    let zoomLevel = 0; // Nivel de zoom actual
+    const maxZoomLevel = 4; // Máximo nivel de zoom
+    let isDragging = false; // Para controlar el arrastre
+    let startX, startY, initialScrollLeft, initialScrollTop; // Variables para arrastrar
+
+    // Función para encriptar un número a base64
+    function encryptNumber(num) {
+        return btoa(num.toString());
+    }
+
+    // Inicia la creación de píxeles
+    startButton.onclick = () => {
+        const totalPixels = parseInt(totalPixelsInput.value);
+        const pixelsPerSide = Math.ceil(Math.sqrt(totalPixels)); // Calcula cuántos píxeles por lado
+
+        // Limpia el contenedor
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = `repeat(${pixelsPerSide}, 1fr)`;
+        container.style.gridTemplateRows = `repeat(${pixelsPerSide}, 1fr)`;
+        container.style.display = 'grid';
+
+        // Crea un array con números desordenados
+        const numbers = Array.from({ length: totalPixels }, (_, i) => i);
+        for (let i = numbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [numbers[i], numbers[j]] = [numbers[j], numbers[i]]; // Intercambiar elementos
+        }
+
+        // Crea los píxeles
+        numbers.forEach((number) => {
+            const pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.dataset.number = encryptNumber(number); // Almacena el número encriptado
+            container.appendChild(pixel);
+        });
+
+        // Muestra el contenedor de píxeles
+        container.style.display = 'grid';
+        zoomLevel = 0; // Reinicia el nivel de zoom
+    };
+
+    // Muestra los píxeles después del primer clic
+    container.onclick = (event) => {
+        if (zoomLevel < maxZoomLevel) {
+            zoomLevel++;
+            const scale = 1 + (zoomLevel * 0.25); // Incrementa el zoom de forma controlada
+            
+            // Calcula la posición del clic en relación al contenedor
+            const rect = container.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const offsetY = event.clientY - rect.top;
+
+            // Ajusta el transform-origin al punto donde se hizo clic
+            container.style.transformOrigin = `${offsetX}px ${offsetY}px`;
+            container.style.transform = `scale(${scale})`;
+
+            // Cambiar el tamaño de los píxeles
+            Array.from(container.children).forEach((pixel) => {
+                pixel.style.width = `${(1 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
+                pixel.style.height = `${(1 / scale) - 4}px`; // Ajusta el tamaño para incluir margen y padding
+            });
+        } 
+        
+        // Al alcanzar el máximo zoom, establecer tamaño de píxeles a 15px
+        if (zoomLevel === maxZoomLevel) {
+            Array.from(container.children).forEach((pixel) => {
+                pixel.style.width = '15px';
+                pixel.style.height = '15px';
+            });
+        }
+    };
+
+    // Manejo de arrastre
+    container.addEventListener('mousedown', (e) => {
+        if (zoomLevel >= maxZoomLevel) {
+            isDragging = true;
+            startX = e.pageX - container.offsetLeft;
+            startY = e.pageY - container.offsetTop;
+            initialScrollLeft = container.scrollLeft;
+            initialScrollTop = container.scrollTop;
+        }
+    });
+
+    container.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    container.addEventListener('mouseleave', () => {
+        isDragging = false;
+    });
+
+    container.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const x = e.pageX - container.offsetLeft;
+            const y = e.pageY - container.offsetTop;
+
+            const walkX = (x - startX) * 1; // Factor de arrastre
+            const walkY = (y - startY) * 1; // Factor de arrastre
+
+            container.style.transform = `scale(${1 + (zoomLevel * 0.25)}) translate(${initialScrollLeft + walkX}px, ${initialScrollTop + walkY}px)`;
+        }
+    });
+
+    // Al hacer clic en un píxel
+    container.addEventListener('click', (event) => {
+        if (zoomLevel === maxZoomLevel && event.target.classList.contains('pixel')) {
+            const encryptedNumber = event.target.dataset.number;
+            const decryptedNumber = atob(encryptedNumber); // Desencriptar el número
+            alert(`Número: ${decryptedNumber}`); // Muestra el número desencriptado
+        }
+    });
+</script>
+
+</body>
+</html>
