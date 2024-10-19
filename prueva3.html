@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Millón de Píxeles</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #pixel-container {
+            width: 100vw; /* 100% del ancho de la ventana */
+            height: 100vh; /* 100% de la altura de la ventana */
+            display: grid;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.5s; /* Transición más lenta */
+            overflow: auto; /* Permite desplazamiento */
+        }
+        .pixel {
+            background-color: black;
+            display: block; /* Muestra los píxeles desde el principio */
+            margin: 2px; /* Margen de 2px */
+            padding: 2px; /* Relleno de 2px */
+            box-sizing: border-box; /* Incluye el margen y padding en el tamaño total */
+        }
+        #input-container {
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+        }
+        #restart-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="input-container">
+    <label for="pixel-count">Número de píxeles (por ejemplo, 10000): </label>
+    <input type="number" id="pixel-count" value="10000" min="1" step="1">
+    <button id="start-button">Iniciar</button>
+</div>
+<a style="background: red;" href="index.html">volver index</a>
+<div id="pixel-container" style="display: none; width: 80%; height: 80%;"></div>
+<button id="restart-button" style="display: none;">Volver a empezar</button>
+
+<script>
+    const container = document.getElementById('pixel-container');
+    const totalPixelsInput = document.getElementById('pixel-count');
+    const startButton = document.getElementById('start-button');
+    const restartButton = document.getElementById('restart-button');
+
+    // Función para encriptar un número a base64
+    function encryptNumber(num) {
+        return btoa(num.toString());
+    }
+
+    // Inicia la creación de píxeles
+    startButton.onclick = () => {
+        const totalPixels = parseInt(totalPixelsInput.value);
+        const pixelsPerSide = Math.ceil(Math.sqrt(totalPixels)); // Calcula cuántos píxeles por lado
+
+        // Limpia el contenedor
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = `repeat(${pixelsPerSide}, 1fr)`;
+        container.style.gridTemplateRows = `repeat(${pixelsPerSide}, 1fr)`;
+        container.style.display = 'grid';
+
+        // Crea un array con números desordenados
+        const numbers = Array.from({ length: totalPixels }, (_, i) => i + 1);
+        for (let i = numbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [numbers[i], numbers[j]] = [numbers[j], numbers[i]]; // Intercambiar elementos
+        }
+
+        // Crea los píxeles
+        numbers.forEach((number) => {
+            const pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.dataset.number = encryptNumber(number); // Almacena el número encriptado
+            container.appendChild(pixel);
+        });
+
+        // Muestra el contenedor de píxeles
+        container.style.display = 'grid';
+
+        // Oculta el contenedor de entrada y muestra el botón de reinicio
+        document.getElementById('input-container').style.display = 'none';
+        restartButton.style.display = 'block';
+    };
+
+    // Al hacer clic en un píxel
+    container.addEventListener('click', (event) => {
+        if (event.target.classList.contains('pixel')) {
+            const encryptedNumber = event.target.dataset.number;
+            const decryptedNumber = atob(encryptedNumber); // Desencriptar el número
+            alert(`Número: ${decryptedNumber}`); // Muestra el número desencriptado
+        }
+    });
+
+    // Reiniciar el juego
+    restartButton.onclick = () => {
+        container.style.display = 'none';
+        restartButton.style.display = 'none';
+        document.getElementById('input-container').style.display = 'block';
+        totalPixelsInput.value = 10000; // Restablecer el valor por defecto
+    };
+</script>
+
+</body>
+</html>
