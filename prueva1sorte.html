@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Millón de Píxeles</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #pixel-container {
+            width: 100px;
+            height: 100px;
+            display: grid;
+            grid-template-columns: repeat(100, 1px);
+            grid-template-rows: repeat(100, 1px);
+            border: 1px solid #ccc;
+            cursor: pointer;
+            position: relative;
+            transform-origin: top left; /* Zoom desde la esquina superior izquierda */
+            transition: transform 0.3s;
+        }
+        .pixel {
+            width: 1px;
+            height: 1px;
+            background-color: black;
+            margin: 0; /* Sin margen para un zoom más preciso */
+        }
+    </style>
+</head>
+<body>
+
+<div id="pixel-container"></div>
+
+<script>
+    const container = document.getElementById('pixel-container');
+    const totalPixels = 100 * 100; // 10,000 pixels
+    let zoomLevel = 0; // Nivel de zoom actual
+
+    // Crea los píxeles
+    for (let i = 0; i < totalPixels; i++) {
+        const pixel = document.createElement('div');
+        pixel.className = 'pixel';
+        pixel.dataset.number = i; // Asigna el número a cada píxel
+        pixel.onclick = (event) => {
+            event.stopPropagation(); // Evita que el clic se propague al contenedor
+            alert(`Número: ${pixel.dataset.number}`);
+        };
+        container.appendChild(pixel);
+    }
+
+    // Función para hacer zoom en el contenedor
+    container.onclick = () => {
+        if (zoomLevel < 15) {
+            zoomLevel++;
+            const scale = 1 + (zoomLevel * 0.5); // Incrementa el zoom
+            container.style.transform = `scale(${scale})`;
+            // Cambiar el tamaño de los píxeles
+            Array.from(container.children).forEach((pixel) => {
+                pixel.style.width = `${1 / scale}px`;
+                pixel.style.height = `${1 / scale}px`;
+            });
+        }
+    };
+</script>
+
+</body>
+</html>
